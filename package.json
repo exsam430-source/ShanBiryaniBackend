@@ -9,7 +9,11 @@
     "dev": "nodemon server.js",
     "build": "echo 'No build step required'"
   },
-  "keywords": ["pos", "restaurant", "biryani"],
+  "keywords": [
+    "pos",
+    "restaurant",
+    "biryani"
+  ],
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
@@ -17,6 +21,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "express-async-handler": "^1.2.0",
     "express-validator": "^7.0.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.0.3",
