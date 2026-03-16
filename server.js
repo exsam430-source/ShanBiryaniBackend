@@ -32,13 +32,37 @@ const app = express();
 // Trust proxy - important for Railway
 app.set('trust proxy', 1);
 
-// Middleware
+// Allowed origins
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://shan-biryani.vercel.app'
+];
+
+// Add env-based frontend URLs if present
+if (process.env.FRONTEND_URL) {
+  process.env.FRONTEND_URL.split(',').forEach((url) => {
+    const trimmedUrl = url.trim();
+    if (trimmedUrl && !allowedOrigins.includes(trimmedUrl)) {
+      allowedOrigins.push(trimmedUrl);
+    }
+  });
+}
+
+// CORS Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL?.split(',') || ['https://your-frontend-url.vercel.app']
-    : ['http://localhost:5173', 'http://localhost:3000'],
+  origin: function (origin, callback) {
+    // allow requests with no origin (Postman, mobile apps, server-to-server)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS not allowed for origin: ${origin}`));
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
@@ -48,7 +72,7 @@ app.use(express.urlencoded({ extended: true }));
 // Static folder for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Health check route (before other routes for Railway)
+// Health check route
 app.get('/health', (req, res) => {
   res.status(200).json({
     success: true,
@@ -97,14 +121,14 @@ const PORT = process.env.PORT || 5000;
 // Connect to database and start server
 const startServer = async () => {
   try {
-    // Connect to MongoDB
     await connectDB();
-    
-    // Start listening
+
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode`);
       console.log(`📍 Port: ${PORT}`);
       console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`✅ Allowed Origins: ${allowedOrigins.join(', ')}`);
+
       if (process.env.NODE_ENV !== 'production') {
         console.log(`📍 Local URL: http://localhost:${PORT}`);
       }
@@ -118,7 +142,6 @@ const startServer = async () => {
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
   console.error('❌ Unhandled Rejection:', err.message);
-  // Close server & exit process
   process.exit(1);
 });
 
